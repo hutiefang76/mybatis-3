@@ -16,26 +16,20 @@
 package org.apache.ibatis.submitted.postgres_parameter_metadata;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.datasource.unpooled.UnpooledDataSource;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import org.apache.ibatis.testcontainers.PgContainer;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
  * @see <a href="https://github.com/mybatis/mybatis-3/issues/3829">Issue #3829</a>
@@ -43,31 +37,23 @@ import org.testcontainers.containers.PostgreSQLContainer;
 @Tag("TestcontainersTests")
 class PostgresParameterMetadataTest {
 
-  private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:18-alpine");
-
   private static SqlSessionFactory sqlSessionFactory;
 
   @BeforeAll
-  static void setUp() {
-    POSTGRES.start();
-    UnpooledDataSource dataSource = new UnpooledDataSource("org.postgresql.Driver", POSTGRES.getJdbcUrl(),
-        POSTGRES.getUsername(), POSTGRES.getPassword());
+  static void setUp() throws Exception {
     Configuration configuration = new Configuration();
-    configuration.setEnvironment(new Environment("development", new JdbcTransactionFactory(), dataSource));
+    Environment environment = new Environment("development", new JdbcTransactionFactory(),
+        PgContainer.getUnpooledDataSource());
+    configuration.setEnvironment(environment);
     configuration.addMapper(Mapper.class);
     sqlSessionFactory = new SqlSessionFactoryBuilder().build(configuration);
-  }
-
-  @AfterAll
-  static void tearDown() {
-    POSTGRES.stop();
   }
 
   @Test
   void booleanParameterWithoutCastIsSerializedAsJsonInsideActiveTransaction() throws SQLException {
     try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
-      startTransaction(sqlSession);
       Mapper mapper = sqlSession.getMapper(Mapper.class);
+      mapper.selectOne();
       assertEquals("true", mapper.selectJsonTextForImplicitParameter(Boolean.TRUE));
     }
   }
@@ -75,8 +61,8 @@ class PostgresParameterMetadataTest {
   @Test
   void stringParameterWithoutCastIsSerializedAsJsonInsideActiveTransaction() throws SQLException {
     try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
-      startTransaction(sqlSession);
       Mapper mapper = sqlSession.getMapper(Mapper.class);
+      mapper.selectOne();
       assertEquals("\"mybatis\"", mapper.selectJsonTextForImplicitParameter("mybatis"));
     }
   }
@@ -84,8 +70,8 @@ class PostgresParameterMetadataTest {
   @Test
   void booleanParameterWithExplicitJdbcTypeIsSerializedAsJsonInsideActiveTransaction() throws SQLException {
     try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
-      startTransaction(sqlSession);
       Mapper mapper = sqlSession.getMapper(Mapper.class);
+      mapper.selectOne();
       assertEquals("true", mapper.selectJsonTextForBooleanJdbcTypeParameter(Boolean.TRUE));
     }
   }
@@ -93,8 +79,8 @@ class PostgresParameterMetadataTest {
   @Test
   void stringParameterWithExplicitJdbcTypeIsSerializedAsJsonInsideActiveTransaction() throws SQLException {
     try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
-      startTransaction(sqlSession);
       Mapper mapper = sqlSession.getMapper(Mapper.class);
+      mapper.selectOne();
       assertEquals("\"mybatis\"", mapper.selectJsonTextForVarcharJdbcTypeParameter("mybatis"));
     }
   }
@@ -102,8 +88,8 @@ class PostgresParameterMetadataTest {
   @Test
   void booleanParameterWithExplicitCastIsSerializedAsJsonInsideActiveTransaction() throws SQLException {
     try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
-      startTransaction(sqlSession);
       Mapper mapper = sqlSession.getMapper(Mapper.class);
+      mapper.selectOne();
       assertEquals("true", mapper.selectJsonTextForBooleanCastParameter(Boolean.TRUE));
     }
   }
@@ -111,8 +97,8 @@ class PostgresParameterMetadataTest {
   @Test
   void stringParameterWithExplicitCastIsSerializedAsJsonInsideActiveTransaction() throws SQLException {
     try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
-      startTransaction(sqlSession);
       Mapper mapper = sqlSession.getMapper(Mapper.class);
+      mapper.selectOne();
       assertEquals("\"mybatis\"", mapper.selectJsonTextForTextCastParameter("mybatis"));
     }
   }
@@ -149,19 +135,9 @@ class PostgresParameterMetadataTest {
     }
   }
 
-  /**
-   * Executes a statement on the session connection so that the connection already carries an open transaction before
-   * any mapper statement is prepared and parameterized.
-   */
-  private static void startTransaction(SqlSession sqlSession) throws SQLException {
-    assertFalse(sqlSession.getConnection().getAutoCommit());
-    try (Statement statement = sqlSession.getConnection().createStatement();
-        ResultSet resultSet = statement.executeQuery("SELECT 1")) {
-      assertTrue(resultSet.next());
-    }
-  }
-
   interface Mapper {
+    @Select("SELECT 1")
+    String selectOne();
 
     @Select("SELECT to_jsonb(#{value})::text")
     String selectJsonTextForImplicitParameter(Object value);
