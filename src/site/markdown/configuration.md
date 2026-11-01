@@ -778,4 +778,4 @@ Now that the behavior of MyBatis is configured with the above configuration elem
 ```
 
 These statement simply tell MyBatis where to go from here. The rest of the details are in each of the SQL Mapping files, and that’s exactly what the next section will discuss.
-Í
+
