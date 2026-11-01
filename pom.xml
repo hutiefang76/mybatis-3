@@ -43,7 +43,7 @@
   <scm>
     <connection>scm:git:ssh://git@github.com/mybatis/mybatis-3.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/mybatis/mybatis-3.git</developerConnection>
-    <tag>mybatis-3.6.0</tag>
+    <tag>HEAD</tag>
     <url>https://github.com/mybatis/mybatis-3</url>
   </scm>
   <issueManagement>
@@ -413,7 +413,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-site-plugin</artifactId>
         <configuration>
-          <locales>default,es,ja,fr,zh_CN,ko</locales>
+          <locales>default,es,ja,fr,zh_CN,ko,zh_TW</locales>
         </configuration>
       </plugin>
       <plugin>
