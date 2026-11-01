@@ -32,7 +32,8 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
- * @see <a href="https://github.com/mybatis/mybatis-3/issues/3829">Issue #3829</a>
+ * @see <a href="https://github.com/mybatis/mybatis-3/issues/3829">mybatis-3 #3829</a>
+ * @see <a href="https://github.com/pgjdbc/pgjdbc/issues/4505">pgjdbc #4505</a>
  */
 @Tag("TestcontainersTests")
 class PostgresParameterMetadataTest {
@@ -51,19 +52,25 @@ class PostgresParameterMetadataTest {
 
   @Test
   void booleanParameterWithoutCastIsSerializedAsJsonInsideActiveTransaction() throws SQLException {
+    sqlSessionFactory.getConfiguration().setIgnoreParameterMetaData(true);
     try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
       Mapper mapper = sqlSession.getMapper(Mapper.class);
       mapper.selectOne();
       assertEquals("true", mapper.selectJsonTextForImplicitParameter(Boolean.TRUE));
+    } finally {
+      sqlSessionFactory.getConfiguration().setIgnoreParameterMetaData(false);
     }
   }
 
   @Test
   void stringParameterWithoutCastIsSerializedAsJsonInsideActiveTransaction() throws SQLException {
+    sqlSessionFactory.getConfiguration().setIgnoreParameterMetaData(true);
     try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
       Mapper mapper = sqlSession.getMapper(Mapper.class);
       mapper.selectOne();
       assertEquals("\"mybatis\"", mapper.selectJsonTextForImplicitParameter("mybatis"));
+    } finally {
+      sqlSessionFactory.getConfiguration().setIgnoreParameterMetaData(false);
     }
   }
 
